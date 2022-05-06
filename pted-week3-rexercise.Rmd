@@ -130,4 +130,30 @@ ggplot(data = caro_filter_clean, mapping = aes(x= E, y=N) )+
   labs(title = "Long segments (removed <5)")+
   theme(title=element_text(size=8),legend.position = "none")
   
-  
+####Task 5 - Similarity measures
+
+##load data
+pedestrian<-read_delim("pedestrian.csv",",")
+
+##look at data structure
+str(pedestrian)
+
+pedestrian
+
+##change ID to factor and Datetime to integer
+pedestrian <- pedestrian%>%
+  mutate(
+    trajID_fac=as.factor(TrajID), 
+    DateTime_integ=as.integer(DatetimeUTC)
+    )
+##check structure again
+str(pedestrian)
+
+##visualize data
+ggplot(data=pedestrian, mapping = aes(x=E, y=N,))+
+  geom_point(data=dplyr::select(pedestrian,-TrajID),color="grey")+
+  geom_point(aes(colour=trajID_fac))+
+  facet_wrap(~TrajID)+
+  labs(title = "Visual comparison of the 6 trajectories", subtitle= "Each subplot highlights a trajectory")+
+  theme_light()+
+  theme(legend.position = "none")

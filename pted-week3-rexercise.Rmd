@@ -85,3 +85,49 @@ caro <- caro %>%
 caro_filter <- caro %>%
   filter(!static)
 
+####Task 3 - Visualize segmented trajectories
+
+ggplot(data = caro, mapping = aes(x= E, y=N) )+
+  geom_path()+
+  geom_point(aes(colour=static))+
+  coord_equal()
+
+####Task 4 - Segment-based analysis
+
+##create a unique ID for each segment:
+
+rle_id <- function(vec){
+  x <- rle(vec)$lengths
+  as.factor(rep(seq_along(x), times=x))
+}
+
+##assigne IDs to subtrajectories and visualize the segments
+caro <- caro %>%
+  mutate(segment_id = rle_id(static))
+
+caro <- caro %>%
+  filter(!static)
+
+ggplot(data = caro, mapping = aes(x= E, y=N) )+
+  geom_path(aes(colour=segment_id))+
+  geom_point(aes(colour=segment_id))+
+  coord_equal()+
+  labs(title = "All segments (uncleaned)")+
+  theme(title=element_text(size=8),legend.position = "none")
+
+
+##remove all segments n<5 and visualize
+
+caro_filter_clean<- caro %>%
+  group_by(segment_id)%>%
+  mutate(n= n())%>%
+  filter(n>=5)
+
+ggplot(data = caro_filter_clean, mapping = aes(x= E, y=N) )+
+  geom_path(aes(colour=segment_id))+
+  geom_point(aes(colour=segment_id))+
+  coord_equal()+
+  labs(title = "Long segments (removed <5)")+
+  theme(title=element_text(size=8),legend.position = "none")
+  
+  

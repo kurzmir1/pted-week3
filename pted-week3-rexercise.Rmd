@@ -3,45 +3,24 @@ title: "pted-week3"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
 #### Task 1 - Segmentation
 
 ##load libraries
+```{r}
 library(readr)        # to import tabular data (e.g. csv)
 library(dplyr)        # to manipulate (tabular) data
 library(ggplot2)      # to visualize data
 library(sf)           # to handle spatial vector data
 library(terra)        # To handle raster data
 library(lubridate)    # To handle dates and times
+```
 
 ##read data
+```{r}
 caro <-read_delim("caro60.csv",",")
-
+```
 ## Measure the distance from every point to every other point within the temporal window of 6 minutes
-
+```{r}
 caro <- caro %>%
   mutate(
     nMinus3 = sqrt((lag(E,3)-E)^2+(lag(N,3)-N)^2),   # distance to pos -3 minutes
@@ -51,21 +30,21 @@ caro <- caro %>%
     nPlus2  = sqrt((E-lead(E,2))^2+(N-lead(N,2))^2),  # distance to pos +2 minutes
     nPlus3  = sqrt((E-lead(E,3))^2+(N-lead(N,3))^2)  # distance to pos +3 minutes
   )
-
+```
 
 ####Task 2 - Specify and apply threshold
 
 ##calculate the mean distance of nMinus3, nMinus2, nMinus1, nPlus1, nPlus2, nPlus3 for each row
-
+```{r}
 caro <- caro %>%
   rowwise() %>%
   mutate(
     stepMean = mean(c(nMinus3, nMinus2, nMinus1,nPlus1,nPlus2,nPlus3))
   ) %>%
   ungroup() 
-
+```
 ##explore the Values of stepMean to choose the treshold 
-
+```{r}
 ggplot(data=caro, mapping = aes(x=stepMean))+
   geom_histogram(binwidth = 1)
 
@@ -73,35 +52,36 @@ ggplot(data=caro, mapping = aes(y=stepMean))+
   geom_boxplot()
 
 summary(caro$stepMean)
-
+```
 #The mean distance of all stepMean values is  6.951. That's what we use as a threshold.
 
 ##Apply threshold to sort stepMean into static or moving
-
+```{r}
 caro <- caro %>% 
   ungroup() %>%
   mutate(static = stepMean < mean(stepMean, na.rm = TRUE))
 
 caro_filter <- caro %>%
   filter(!static)
-
+```
 ####Task 3 - Visualize segmented trajectories
-
+```{r}
 ggplot(data = caro, mapping = aes(x= E, y=N) )+
   geom_path()+
   geom_point(aes(colour=static))+
   coord_equal()
-
+```
 ####Task 4 - Segment-based analysis
 
 ##create a unique ID for each segment:
-
+```{r}
 rle_id <- function(vec){
   x <- rle(vec)$lengths
   as.factor(rep(seq_along(x), times=x))
 }
-
+```
 ##assigne IDs to subtrajectories and visualize the segments
+```{r}
 caro <- caro %>%
   mutate(segment_id = rle_id(static))
 
@@ -114,10 +94,9 @@ ggplot(data = caro, mapping = aes(x= E, y=N) )+
   coord_equal()+
   labs(title = "All segments (uncleaned)")+
   theme(title=element_text(size=8),legend.position = "none")
-
-
+```
 ##remove all segments n<5 and visualize
-
+```{r}
 caro_filter_clean<- caro %>%
   group_by(segment_id)%>%
   mutate(n= n())%>%
@@ -129,27 +108,34 @@ ggplot(data = caro_filter_clean, mapping = aes(x= E, y=N) )+
   coord_equal()+
   labs(title = "Long segments (removed <5)")+
   theme(title=element_text(size=8),legend.position = "none")
-  
+```
 ####Task 5 - Similarity measures
 
 ##load data
+```{r}
 pedestrian<-read_delim("pedestrian.csv",",")
+```
 
 ##look at data structure
+```{r}
 str(pedestrian)
 
 pedestrian
-
+```
 ##change ID to factor and Datetime to integer
+```{r}
 pedestrian <- pedestrian%>%
   mutate(
     trajID_fac=as.factor(TrajID), 
     DateTime_integ=as.integer(DatetimeUTC)
     )
+```
 ##check structure again
+```{r}
 str(pedestrian)
-
+```
 ##visualize data
+```{r}
 ggplot(data=pedestrian, mapping = aes(x=E, y=N,))+
   geom_point(data=dplyr::select(pedestrian,-TrajID),color="grey")+
   geom_point(aes(colour=trajID_fac))+
@@ -157,3 +143,4 @@ ggplot(data=pedestrian, mapping = aes(x=E, y=N,))+
   labs(title = "Visual comparison of the 6 trajectories", subtitle= "Each subplot highlights a trajectory")+
   theme_light()+
   theme(legend.position = "none")
+```
